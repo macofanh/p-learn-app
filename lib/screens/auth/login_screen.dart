@@ -27,62 +27,62 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  // TRONG FILE: screens/auth/login_screen.dart
+
   Future<void> _handleLogin() async {
-
     if (_formKey.currentState!.validate()) {
-
       setState(() {
         _isLoading = true;
       });
 
       try {
-
         final authService = Provider.of<AuthService>(context, listen: false);
-        final success = await authService.login(
-          _emailController.text.trim(),
+
+        // GỌI HÀM LOGIN MỚI
+        // Lưu ý: Cần đảm bảo bạn đã thêm .toUpperCase() cho username như đã bàn trước đó
+        final result = await authService.login(
+          _emailController.text.trim().toUpperCase(),
           _passwordController.text,
         );
 
-       
-
-        if (success && mounted) {
-        
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const MainTabScreen(initialIndex: 0),
-            ),
-          );
-          
-        }
-
-        if (!success && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Email hoặc mật khẩu không đúng'),
-              backgroundColor: Colors.red,
-            ),
-          );
+        if (mounted) {
+          // Kiểm tra mounted trước khi dùng context
+          if (result['success'] == true) {
+            // THÀNH CÔNG -> CHUYỂN MÀN
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const MainTabScreen(initialIndex: 0),
+              ),
+            );
+          } else {
+            // THẤT BẠI -> HIỆN LỖI CỤ THỂ TỪ SERVICE
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  result['message'] ?? 'Đã có lỗi xảy ra',
+                ), // Lấy message từ kết quả
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Lỗi: ${e.toString()}'),
+              content: Text('Lỗi ngoại lệ: ${e.toString()}'),
               backgroundColor: Colors.red,
             ),
           );
         }
       } finally {
-     
         if (mounted) {
           setState(() {
             _isLoading = false;
           });
         }
       }
-    } else {
-     
     }
   }
 

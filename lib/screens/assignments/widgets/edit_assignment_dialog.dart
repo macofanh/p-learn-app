@@ -56,13 +56,19 @@ class _EditAssignmentDialogState extends State<EditAssignmentDialog> {
   Future<void> _submit() async {
     if (_formKey.currentState!.validate() && _selectedDueDate != null) {
       setState(() => _isLoading = true);
-      await widget.onEditAssignment(
-        widget.assignment,
-        _titleController.text,
-        _selectedDueDate!,
-      );
-      if (mounted) {
-        setState(() => _isLoading = false);
+      
+      try {
+        await widget.onEditAssignment(
+          widget.assignment,
+          _titleController.text,
+          _selectedDueDate!,
+        );
+        // Dialog sẽ được đóng từ parent screen
+      } catch (e) {
+        // Nếu có lỗi, reset loading state
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
     }
   }
@@ -78,6 +84,7 @@ class _EditAssignmentDialogState extends State<EditAssignmentDialog> {
           children: [
             TextFormField(
               controller: _titleController,
+              enabled: !_isLoading,
               decoration: const InputDecoration(
                 labelText: 'Tiêu đề bài tập',
                 border: OutlineInputBorder(),
@@ -87,7 +94,7 @@ class _EditAssignmentDialogState extends State<EditAssignmentDialog> {
             ),
             const SizedBox(height: 16),
             InkWell(
-              onTap: _pickDate,
+              onTap: _isLoading ? null : _pickDate,
               child: InputDecorator(
                 decoration: const InputDecoration(
                   labelText: 'Hạn nộp',
@@ -97,6 +104,9 @@ class _EditAssignmentDialogState extends State<EditAssignmentDialog> {
                   _selectedDueDate == null
                       ? 'Chọn ngày'
                       : DateFormat('dd/MM/yyyy').format(_selectedDueDate!),
+                  style: TextStyle(
+                    color: _isLoading ? Colors.grey : Colors.black,
+                  ),
                 ),
               ),
             ),
@@ -105,7 +115,7 @@ class _EditAssignmentDialogState extends State<EditAssignmentDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: _isLoading ? null : () => Navigator.pop(context),
           child: const Text('Hủy'),
         ),
         ElevatedButton(

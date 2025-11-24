@@ -22,7 +22,7 @@ class _AddAssignmentDialogState extends State<AddAssignmentDialog> {
   Future<void> _pickDate() async {
     final pickedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: _selectedDueDate ?? DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
@@ -36,12 +36,18 @@ class _AddAssignmentDialogState extends State<AddAssignmentDialog> {
   Future<void> _submit() async {
     if (_formKey.currentState!.validate() && _selectedDueDate != null) {
       setState(() => _isLoading = true);
-      await widget.onAddAssignment(
-        _titleController.text,
-        _selectedDueDate!,
-      );
-      if (mounted) {
-        setState(() => _isLoading = false);
+      
+      try {
+        await widget.onAddAssignment(
+          _titleController.text,
+          _selectedDueDate!,
+        );
+        // Dialog sẽ được đóng từ parent screen
+      } catch (e) {
+        // Nếu có lỗi, reset loading state
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
     } else if (_selectedDueDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -67,6 +73,7 @@ class _AddAssignmentDialogState extends State<AddAssignmentDialog> {
           children: [
             TextFormField(
               controller: _titleController,
+              enabled: !_isLoading,
               decoration: const InputDecoration(
                 labelText: 'Tiêu đề bài tập',
                 border: OutlineInputBorder(),
@@ -76,7 +83,7 @@ class _AddAssignmentDialogState extends State<AddAssignmentDialog> {
             ),
             const SizedBox(height: 16),
             InkWell(
-              onTap: _pickDate,
+              onTap: _isLoading ? null : _pickDate,
               child: InputDecorator(
                 decoration: const InputDecoration(
                   labelText: 'Hạn nộp',
@@ -86,6 +93,9 @@ class _AddAssignmentDialogState extends State<AddAssignmentDialog> {
                   _selectedDueDate == null
                       ? 'Chọn ngày'
                       : DateFormat('dd/MM/yyyy').format(_selectedDueDate!),
+                  style: TextStyle(
+                    color: _isLoading ? Colors.grey : Colors.black,
+                  ),
                 ),
               ),
             ),
@@ -94,7 +104,7 @@ class _AddAssignmentDialogState extends State<AddAssignmentDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: _isLoading ? null : () => Navigator.pop(context),
           child: const Text('Hủy'),
         ),
         ElevatedButton(
