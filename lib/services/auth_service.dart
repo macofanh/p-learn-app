@@ -16,54 +16,44 @@ class AuthService with ChangeNotifier {
   String? get currentEmail => _email;
 
   Future<Map<String, dynamic>> login(String username, String password) async {
-    try {
-      final url = Uri.parse(Endpoints.login);
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json; charset=UTF-8'},
-        body: jsonEncode({'username': username, 'password': password}),
-      );
+  try {
+    final url = Uri.parse(Endpoints.login);
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      body: jsonEncode({'username': username, 'password': password}),
+    );
 
-      if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
+    print("RAW RESPONSE: ${response.body}");
 
-        if (responseData is Map && responseData.containsKey('accessToken')) {
-            final String accessToken = responseData['token']['access_token'];
-            final String serverUsername = responseData['user']['username'];
-            final String serverEmail = responseData['user']['email'];
+    if (response.statusCode == 200) {
+      final responseData = jsonDecode(response.body);
 
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('access_token', accessToken);
-          await prefs.setString('username', serverUsername);
-          await prefs.setString('email', serverEmail);
+      final String accessToken = responseData['accessToken'];
+      final String serverUsername = responseData['user']['username'];
+      final String serverEmail = responseData['user']['email'];
 
-          _isLoggedIn = true;
-          _username = serverUsername;
-          _email = serverEmail;
-          print(responseData);
-          notifyListeners();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('access_token', accessToken);
+      await prefs.setString('username', serverUsername);
+      await prefs.setString('email', serverEmail);
 
-          return {'success': true, 'message': 'Đăng nhập thành công'};
-        } else {
-          return {
-            'success': false,
-            'message': 'Phản hồi server thiếu accessToken',
-          };
-        }
-      } else {
-        String errorMessage = 'Lỗi đăng nhập (${response.statusCode})';
-        try {
-          final errorData = jsonDecode(response.body);
-          if (errorData is Map && errorData.containsKey('message')) {
-            errorMessage = errorData['message'];
-          }
-        } catch (_) {}
-        return {'success': false, 'message': errorMessage};
-      }
-    } catch (e) {
-      return {'success': false, 'message': 'Lỗi kết nối: ${e.toString()}'};
+      _isLoggedIn = true;
+      _username = serverUsername;
+      _email = serverEmail;
+
+      notifyListeners();
+      return {'success': true, 'message': 'Đăng nhập thành công'};
+    } else {
+      return {
+        'success': false,
+        'message': 'Sai tài khoản hoặc mật khẩu'
+      };
     }
+  } catch (e) {
+    return {'success': false, 'message': 'Lỗi kết nối: ${e.toString()}'};
   }
+}
 
   Future<bool> register(String username, String email, String password) async {
     try {

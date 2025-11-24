@@ -65,6 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 backgroundColor: Colors.red,
               ),
             );
+            print(result['message']);
           }
         }
       } catch (e) {

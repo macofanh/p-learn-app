@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:p_learn_app/screens/tools/chatbot_screen.dart';
 import 'package:p_learn_app/screens/tools/gpa_calculator_screen.dart';
 import 'package:p_learn_app/screens/tools/pomodoro_screen.dart';
+import 'package:p_learn_app/services/group_service.dart';
 
 class ToolsScreen extends StatelessWidget {
   const ToolsScreen({super.key});
@@ -64,17 +65,17 @@ class ToolsScreen extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 16),
-              
+
               _buildToolCard(
                 context,
-                icon: Icons.chat_bubble_outline, 
+                icon: Icons.chat_bubble_outline,
                 title: 'Chatbot hỗ trợ',
                 subtitle: 'Trò chuyện với trợ lý ảo học tập.',
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const ChatbotScreen(), 
+                      builder: (context) => const ChatbotScreen(),
                     ),
                   );
                 },
@@ -99,36 +100,126 @@ class ToolsScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               ListTile(
-                leading: const Icon(Icons.add_circle_outline, color: Colors.red),
-                title: const Text(
-                  'Tạo nhóm mới',
-                  style: TextStyle(fontWeight: FontWeight.w500),
+                leading: const Icon(
+                  Icons.add_circle_outline,
+                  color: Colors.red,
                 ),
+                title: const Text('Tạo nhóm mới'),
                 onTap: () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Chuyển đến màn hình Tạo Nhóm...')),
-                  );
+                  _showCreateGroupDialog(context);
                 },
               ),
               const Divider(),
               ListTile(
-                leading: const Icon(Icons.group_add_outlined, color: Colors.red),
-                title: const Text(
-                  'Tham gia nhóm',
-                  style: TextStyle(fontWeight: FontWeight.w500),
+                leading: const Icon(
+                  Icons.group_add_outlined,
+                  color: Colors.red,
                 ),
+                title: const Text('Tham gia nhóm'),
                 onTap: () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Chuyển đến màn hình Tham Gia Nhóm...')),
-                  );
+                  _showJoinGroupDialog(context);
                 },
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  void _showCreateGroupDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    final descController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text("Tạo nhóm học tập"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: "Tên nhóm"),
+              ),
+              TextField(
+                controller: descController,
+                decoration: const InputDecoration(labelText: "Mô tả nhóm"),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: const Text("Hủy"),
+              onPressed: () => Navigator.pop(context),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text("Tạo nhóm"),
+              onPressed: () async {
+                final res = await GroupService().createGroup(
+                  nameController.text,
+                  descController.text,
+                );
+
+                Navigator.pop(context);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(res["message"] ?? "Tạo nhóm thành công"),
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showJoinGroupDialog(BuildContext context) {
+    final groupIdController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text("Tham gia nhóm"),
+          content: TextField(
+            controller: groupIdController,
+            decoration: const InputDecoration(labelText: "Nhập ID nhóm"),
+            keyboardType: TextInputType.number,
+          ),
+          actions: [
+            TextButton(
+              child: const Text("Hủy"),
+              onPressed: () => Navigator.pop(context),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text("Tham gia"),
+              onPressed: () async {
+                final res = await GroupService().joinGroup(
+                  groupIdController.text.trim(),
+                );
+
+                Navigator.pop(context);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(res["message"] ?? "Đã tham gia nhóm")),
+                );
+              },
+            ),
+          ],
         );
       },
     );
