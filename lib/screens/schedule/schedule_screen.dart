@@ -1,10 +1,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:p_learn_app/models/course_model.dart';
 import 'package:p_learn_app/models/schedule_model.dart';
-import 'package:p_learn_app/services/schedule_service.dart';
+import 'package:p_learn_app/providers/course_provider.dart';
 import 'package:p_learn_app/widgets/app_colors.dart';
 import 'package:p_learn_app/screens/notification/notification_screen.dart';
+import 'package:provider/provider.dart';
 
 class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});
@@ -14,16 +16,55 @@ class ScheduleScreen extends StatefulWidget {
 }
 
 class _ScheduleScreenState extends State<ScheduleScreen> {
-  late Future<List<ScheduleItem>> _scheduleFuture;
-  final ScheduleService _scheduleService = ScheduleService();
   DateTime _selectedDate = DateTime.now();
   final ScrollController _scrollController = ScrollController();
   final Map<DateTime, GlobalKey> _dateKeys = {};
 
-  @override
-  void initState() {
-    super.initState();
-    _scheduleFuture = _scheduleService.getSchedule();
+  List<ScheduleItem> _processCoursesIntoScheduleItems(List<Course> courses) {
+    final List<ScheduleItem> items = [];
+    final Map<int, int> apiToDartWeekday = {
+      0: 7, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6,
+    };
+
+    for (final course in courses) {
+      if (course.schedule.isEmpty) {
+        continue;
+      }
+      try {
+        DateTime courseStartDate = DateTime.parse(course.startDate);
+        DateTime courseEndDate = DateTime.parse(course.endDate);
+        DateTime currentDate = courseStartDate;
+
+        while (currentDate.isBefore(courseEndDate) ||
+            currentDate.isAtSameMomentAs(courseEndDate)) {
+          for (final rule in course.schedule) {
+            int? dartWeekday = apiToDartWeekday[rule.dayOfWeek];
+            if (dartWeekday != null && currentDate.weekday == dartWeekday) {
+              try {
+                final startTime = rule.startTime.substring(0, 5);
+                final endTime = rule.endTime.substring(0, 5);
+                final timeString = '$startTime - $endTime';
+                items.add(
+                  ScheduleItem(
+                    id: '${course.id}-${currentDate.toIso8601String()}',
+                    subject: course.fullName,
+                    room: rule.room,
+                    date: currentDate,
+                    time: timeString,
+                  ),
+                );
+              } catch (e) {
+                // Handle time parsing errors
+              }
+            }
+          }
+          currentDate = currentDate.add(const Duration(days: 1));
+        }
+      } catch (e) {
+        // Handle date parsing errors
+      }
+    }
+    return items;
   }
 
   Map<DateTime, List<ScheduleItem>> _groupScheduleByDate(
@@ -75,18 +116,20 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<ScheduleItem>>(
-        future: _scheduleFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      body: Consumer<CourseProvider>(
+        builder: (context, provider, child) {
+          if (provider.state == CourseState.loading || provider.state == CourseState.initial) {
             return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Lỗi: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          } else if (provider.state == CourseState.error) {
+            return Center(child: Text('Lỗi: ${provider.errorMessage}'));
+          }
+          
+          final scheduleItems = _processCoursesIntoScheduleItems(provider.courses);
+          if (scheduleItems.isEmpty) {
             return const Center(child: Text('Không có lịch học.'));
           }
 
-          final groupedSchedule = _groupScheduleByDate(snapshot.data!);
+          final groupedSchedule = _groupScheduleByDate(scheduleItems);
           final sortedDates = groupedSchedule.keys.toList()..sort();
 
           _dateKeys.clear(); 

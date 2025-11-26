@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:p_learn_app/models/course_model.dart';
 import 'package:p_learn_app/models/schedule_model.dart';
-import 'package:p_learn_app/services/schedule_service.dart';
+import 'package:p_learn_app/providers/course_provider.dart';
+import 'package:provider/provider.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -11,13 +13,50 @@ class NotificationScreen extends StatefulWidget {
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
-  late Future<List<ScheduleItem>> _scheduleFuture;
-  final ScheduleService _scheduleService = ScheduleService();
+  
+  List<ScheduleItem> _processCoursesIntoScheduleItems(List<Course> courses) {
+    final List<ScheduleItem> items = [];
+    final Map<int, int> apiToDartWeekday = {
+      0: 7, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6,
+    };
 
-  @override
-  void initState() {
-    super.initState();
-    _scheduleFuture = _scheduleService.getSchedule();
+    for (final course in courses) {
+      if (course.schedule.isEmpty) continue;
+      try {
+        DateTime courseStartDate = DateTime.parse(course.startDate);
+        DateTime courseEndDate = DateTime.parse(course.endDate);
+        DateTime currentDate = courseStartDate;
+
+        while (currentDate.isBefore(courseEndDate) ||
+            currentDate.isAtSameMomentAs(courseEndDate)) {
+          for (final rule in course.schedule) {
+            int? dartWeekday = apiToDartWeekday[rule.dayOfWeek];
+            if (dartWeekday != null && currentDate.weekday == dartWeekday) {
+              try {
+                final startTime = rule.startTime.substring(0, 5);
+                final endTime = rule.endTime.substring(0, 5);
+                final timeString = '$startTime - $endTime';
+                items.add(
+                  ScheduleItem(
+                    id: '${course.id}-${currentDate.toIso8601String()}',
+                    subject: course.fullName,
+                    room: rule.room,
+                    date: currentDate,
+                    time: timeString,
+                  ),
+                );
+              } catch (e) {
+                // Time parsing error
+              }
+            }
+          }
+          currentDate = currentDate.add(const Duration(days: 1));
+        }
+      } catch (e) {
+        // Date parsing error
+      }
+    }
+    return items;
   }
 
   @override
@@ -35,14 +74,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
           ),
         ),
       ),
-      body: FutureBuilder<List<ScheduleItem>>(
-        future: _scheduleFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      body: Consumer<CourseProvider>(
+        builder: (context, provider, child) {
+          if (provider.state == CourseState.loading || provider.state == CourseState.initial) {
             return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Lỗi: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          } else if (provider.state == CourseState.error) {
+            return Center(child: Text('Lỗi: ${provider.errorMessage}'));
+          }
+          
+          final allScheduleItems = _processCoursesIntoScheduleItems(provider.courses);
+          if (allScheduleItems.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -59,7 +100,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
           }
 
           final now = DateTime.now();
-          final upcomingNotifications = snapshot.data!.where((item) {
+          final upcomingNotifications = allScheduleItems.where((item) {
             try {
               final timeParts = item.time.split(' - ')[0].split(':');
               final hour = int.parse(timeParts[0]);

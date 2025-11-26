@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:p_learn_app/models/course_model.dart';
+import 'package:p_learn_app/providers/course_provider.dart';
 import 'package:p_learn_app/screens/assignments/assignment_list_screen.dart';
 import 'package:p_learn_app/screens/courses/widgets/add_course_dialog.dart';
 import 'package:p_learn_app/screens/courses/widgets/edit_course_dialog.dart';
 import 'package:p_learn_app/screens/courses/widgets/course_list_item.dart';
 import 'package:p_learn_app/services/course_service.dart';
+import 'package:provider/provider.dart';
 
 class CourseListScreen extends StatefulWidget {
   const CourseListScreen({super.key});
@@ -14,7 +16,6 @@ class CourseListScreen extends StatefulWidget {
 }
 
 class _CourseListScreenState extends State<CourseListScreen> {
-  late Future<List<Course>> _coursesFuture;
   final CourseService _courseService = CourseService();
 
   final List<IconData> _courseIcons = [
@@ -29,12 +30,14 @@ class _CourseListScreenState extends State<CourseListScreen> {
   @override
   void initState() {
     super.initState();
-    _coursesFuture = _courseService.fetchCourses();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CourseProvider>().fetchCourses();
+    });
   }
 
   Future<void> _addCourse(Map<String, dynamic> courseData) async {
     try {
-      final success = await _courseService.addCourse(courseData);
+      final success = await context.read<CourseProvider>().addCourse(courseData);
 
       if (!mounted) return;
 
@@ -43,9 +46,6 @@ class _CourseListScreenState extends State<CourseListScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đã thêm môn học thành công')),
         );
-        setState(() {
-          _coursesFuture = _courseService.fetchCourses();
-        });
       } else {
         throw Exception('Lỗi khi thêm môn học');
       }
@@ -60,6 +60,8 @@ class _CourseListScreenState extends State<CourseListScreen> {
 
   Future<void> _editCourse(Course course, Map<String, dynamic> courseData) async {
     try {
+      // Note: Edit/Delete are not in provider yet, using local service for now.
+      // For a full provider pattern, these should be moved to the provider as well.
       final success = await _courseService.editCourse(course.id, courseData);
 
       if (!mounted) return;
@@ -69,9 +71,7 @@ class _CourseListScreenState extends State<CourseListScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đã cập nhật môn học thành công')),
         );
-        setState(() {
-          _coursesFuture = _courseService.fetchCourses();
-        });
+        context.read<CourseProvider>().fetchCourses(); // Refresh list
       } else {
         throw Exception('Lỗi khi cập nhật môn học');
       }
@@ -95,9 +95,7 @@ class _CourseListScreenState extends State<CourseListScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đã xóa môn học thành công')),
         );
-        setState(() {
-          _coursesFuture = _courseService.fetchCourses();
-        });
+        context.read<CourseProvider>().fetchCourses(); // Refresh list
       } else {
         throw Exception('Lỗi khi xóa môn học');
       }
@@ -210,23 +208,20 @@ class _CourseListScreenState extends State<CourseListScreen> {
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: () {
-              setState(() {
-                _coursesFuture = _courseService.fetchCourses();
-              });
+              context.read<CourseProvider>().fetchCourses();
             },
           ),
         ],
       ),
-      body: FutureBuilder<List<Course>>(
-        future: _coursesFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      body: Consumer<CourseProvider>(
+        builder: (context, provider, child) {
+          if (provider.state == CourseState.loading || provider.state == CourseState.initial) {
             return const Center(
               child: CircularProgressIndicator(color: Colors.red),
             );
           }
 
-          if (snapshot.hasError) {
+          if (provider.state == CourseState.error) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -241,7 +236,7 @@ class _CourseListScreenState extends State<CourseListScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 32.0),
                     child: Text(
-                      snapshot.error.toString(),
+                      provider.errorMessage,
                       style: Theme.of(context).textTheme.bodyMedium,
                       textAlign: TextAlign.center,
                     ),
@@ -251,7 +246,7 @@ class _CourseListScreenState extends State<CourseListScreen> {
             );
           }
 
-          final courses = snapshot.data ?? [];
+          final courses = provider.courses;
           if (courses.isEmpty) {
             return Center(
               child: Column(

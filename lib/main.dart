@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 
 import 'package:p_learn_app/services/notification_service.dart';
 
+import 'package:p_learn_app/providers/course_provider.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
@@ -19,8 +21,11 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<AuthService>(
-      create: (_) => AuthService(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AuthService>(create: (_) => AuthService()),
+        ChangeNotifierProvider<CourseProvider>(create: (_) => CourseProvider()),
+      ],
       child: const MaterialApp(
         debugShowCheckedModeBanner: false,
         home: AuthWrapper(),

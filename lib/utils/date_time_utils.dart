@@ -13,11 +13,7 @@ class DateTimeUtils {
   }
 
   static String timeOfDayToString(TimeOfDay time) {
-    final now = DateTime.now();
-    return DateTime.utc(now.year, now.month, now.day, time.hour, time.minute)
-        .toIso8601String()
-        .split('T')
-        .last;
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 
   static String dateToString(DateTime date) {

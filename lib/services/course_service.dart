@@ -45,7 +45,13 @@ class CourseService {
 
     try {
       final response = await http.post(url, headers: headers, body: body);
-      return response.statusCode == 201 || response.statusCode == 200;
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return true;
+      } else {
+        print('Failed to add course. Status Code: ${response.statusCode}');
+        print('Response Body: ${response.body}');
+        return false;
+      }
     } catch (e) {
       throw Exception(e.toString());
     }
