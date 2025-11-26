@@ -40,7 +40,7 @@ class Endpoints {
   static String get createGroup => '$baseUrl/api/groups/createGroup';
   static String get getAllGroups => '$baseUrl/api/groups/getAll';
   static String getGroupById(String groupId) => '$baseUrl/api/groups/get/$groupId';
-  static String joinGroup(String groupId) => '$baseUrl/api/groups/$groupId/join';
+  static String joinGroup(String groupCode) => '$baseUrl/api/groups/join/$groupCode';
   static String leaveGroup(String groupId) => '$baseUrl/api/groups/$groupId/leave';
   static String deleteGroup(String groupId) => '$baseUrl/api/groups/delete/$groupId';
   static String getGroupDocuments(String groupId) => '$baseUrl/api/groups/get/$groupId/documents';
