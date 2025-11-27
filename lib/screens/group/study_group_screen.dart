@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:p_learn_app/screens/group/create_group_dialog.dart';
+import 'package:p_learn_app/screens/group/group_detail_screen.dart';
 import 'package:p_learn_app/screens/group/join_group_dialog.dart';
 import 'package:p_learn_app/services/group_service.dart';
 
@@ -218,10 +219,15 @@ class _StudyGroupScreenState extends State<StudyGroupScreen> {
             ),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("Đã chọn nhóm: ${group['name']}")),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => GroupDetailScreen(
+                    groupId: group['id'].toString(), // Convert int to String
+                    groupName: group['name'] ?? "Không tên",
+                  ),
+                ),
               );
-              // TODO: Điều hướng vào chi tiết nhóm ở đây
             },
           ),
         );

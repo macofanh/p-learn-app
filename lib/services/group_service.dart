@@ -1,13 +1,14 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:p_learn_app/api/endpoints.dart';
+import 'package:dio/dio.dart';
 
 class GroupService {
   
   Future<Map<String, String>> _getAuthHeaders() async {
     final prefs = await SharedPreferences.getInstance();
-    // Key 'access_token' phải khớp với lúc bạn lưu khi đăng nhập
     final token = prefs.getString('access_token'); 
 
     if (token == null) {
@@ -55,7 +56,6 @@ class GroupService {
       if (response.statusCode == 201 || response.statusCode == 200) {
         return true;
       } else {
-        // Cố gắng đọc thông báo lỗi từ server nếu có
         String errorMsg = 'Mã lỗi ${response.statusCode}';
         try {
           final body = jsonDecode(utf8.decode(response.bodyBytes));
@@ -146,4 +146,58 @@ class GroupService {
       throw Exception(e.toString());
     }
   }
+
+  // 7. Lấy danh sách tài liệu của nhóm
+  Future<List<dynamic>> getGroupDocuments(String groupId) async {
+    final url = Endpoints.getGroupDocuments(groupId);
+    final headers = await _getAuthHeaders();
+    
+    try {
+      final response = await http.get(Uri.parse(url), headers: headers);
+      if (response.statusCode == 200) {
+        return jsonDecode(utf8.decode(response.bodyBytes));
+      } else {
+        throw Exception('Lỗi tải tài liệu: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Không thể kết nối đến máy chủ: $e');
+    }
+  }
+
+  // 8. Upload tài liệu lên nhóm
+  Future<bool> uploadDocument(String groupId, String filePath) async {
+    final url = Endpoints.uploadGroupDocument(groupId);
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+
+    if (token == null) {
+      throw Exception('Người dùng chưa đăng nhập hoặc token đã hết hạn');
+    }
+
+    try {
+      final dio = Dio();
+      final file = File(filePath);
+      String fileName = file.path.split('/').last;
+
+      FormData formData = FormData.fromMap({
+        "file": await MultipartFile.fromFile(file.path, filename: fileName),
+      });
+
+      final response = await dio.post(
+        url,
+        data: formData,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (e) {
+      throw Exception('Upload tài liệu thất bại: $e');
+    }
+  }
 }
+
