@@ -12,46 +12,40 @@ class AssignmentListItem extends StatelessWidget {
   final Assignment assignment;
   final VoidCallback onLongPress;
 
+  // ---- Tính số ngày đến hạn ----
   String _getDueDateInfo(DateTime dueDate) {
     final now = DateTime.now();
-    final midnightDueDate = DateTime(dueDate.year, dueDate.month, dueDate.day);
-    final midnightNow = DateTime(now.year, now.month, now.day);
-    final difference = midnightDueDate.difference(midnightNow).inDays;
+    final today = DateTime(now.year, now.month, now.day);
+    final dday = DateTime(dueDate.year, dueDate.month, dueDate.day);
 
-    if (difference < 0) {
-      return 'Đã quá hạn';
-    } else if (difference == 0) {
-      return 'Hạn hôm nay';
-    } else if (difference == 1) {
-      return 'Còn 1 ngày';
-    } else {
-      return 'Còn $difference ngày';
-    }
+    final diff = dday.difference(today).inDays;
+
+    if (diff < 0) return "Đã quá hạn";
+    if (diff == 0) return "Hạn hôm nay";
+    if (diff == 1) return "Còn 1 ngày";
+    return "Còn $diff ngày";
   }
 
-  Color _getDueDateColor(DateTime dueDate) {
+  // ---- Màu trạng thái ----
+  Color _getDueColor(DateTime dueDate) {
     final now = DateTime.now();
-    final difference = dueDate.difference(now).inDays;
+    final diff = dueDate.difference(now).inDays;
 
-    if (dueDate.isBefore(now) && difference < 0) {
-      return Colors.red;
-    } else if (difference <= 3) {
-      return Colors.orange;
-    } else {
-      return Colors.green;
-    }
+    if (dueDate.isBefore(now) && diff < 0) return Colors.red;
+    if (diff <= 3) return Colors.orange;
+    return Colors.green;
   }
 
   @override
   Widget build(BuildContext context) {
-    final dueDateInfo = _getDueDateInfo(assignment.dueDate);
-    final dueDateColor = _getDueDateColor(assignment.dueDate);
+    final dueInfo = _getDueDateInfo(assignment.dueDate);
+    final dueColor = _getDueColor(assignment.dueDate);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16.0),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12.0),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Colors.red.withOpacity(0.1),
@@ -63,22 +57,60 @@ class AssignmentListItem extends StatelessWidget {
       ),
       child: InkWell(
         onLongPress: onLongPress,
-        borderRadius: BorderRadius.circular(12.0),
+        borderRadius: BorderRadius.circular(12),
         child: ListTile(
           leading: CircleAvatar(
-            backgroundColor: dueDateColor.withOpacity(0.1),
-            child: Icon(Icons.assignment, color: dueDateColor),
+            backgroundColor: dueColor.withOpacity(0.1),
+            child: Icon(
+              Icons.assignment,
+              color: dueColor,
+            ),
           ),
-          title: Text(assignment.title,
-              style:
-                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          subtitle: Text(
-            'Hạn nộp: ${DateFormat('dd/MM/yyyy').format(assignment.dueDate)}',
-            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+
+          // ======================
+          // 🔥 Dùng đúng dữ liệu từ endpoint
+          // ======================
+          title: Text(
+            assignment.title,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
           ),
+
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Mô tả
+              if (assignment.description.isNotEmpty)
+                Text(
+                  assignment.description,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[700],
+                  ),
+                ),
+
+              const SizedBox(height: 4),
+
+              // Hạn nộp
+              Text(
+                "Hạn nộp: ${DateFormat('dd/MM/yyyy').format(assignment.dueDate)}",
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+
+          // Badge trạng thái thời gian
           trailing: Text(
-            dueDateInfo,
-            style: TextStyle(color: dueDateColor, fontWeight: FontWeight.bold),
+            dueInfo,
+            style: TextStyle(
+              color: dueColor,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),

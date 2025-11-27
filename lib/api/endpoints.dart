@@ -23,11 +23,11 @@ class Endpoints {
   static String deleteNote(String noteId) => '$baseUrl/api/notes/delete/$noteId';
 
   //Tasks
-  static String createTask(String subjectId) => '$baseUrl/api/tasks/create/$subjectId';
-  static String getAllTasks(String subjectId) => '$baseUrl/api/tasks/getAll/$subjectId';
+  static String createTask(String subjectId) => '$baseUrl/api/subjects/create/$subjectId/tasks';
+  static String getAllTasks(String subjectId) => '$baseUrl/api/subjects/$subjectId/tasks/list';
   static String getTaskById(String taskId) => '$baseUrl/api/tasks/get/$taskId';
   static String updateTask(String taskId) => '$baseUrl/api/tasks/update/$taskId';
-  static String deleteTask(String taskId) => '$baseUrl/api/tasks/delete/$taskId';
+  static String deleteTask(String taskId) => '$baseUrl/api/delete/tasks/$taskId';
 
   //Schedules
   static String createSchedule(String subjectId) => '$baseUrl/api/schedules/create/$subjectId';
