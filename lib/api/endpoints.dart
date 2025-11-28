@@ -45,4 +45,6 @@ class Endpoints {
   static String deleteGroup(String groupId) => '$baseUrl/api/groups/delete/$groupId';
   static String getGroupDocuments(String groupId) => '$baseUrl/api/groups/get/$groupId/documents';
   static String uploadGroupDocument(String groupId) => '$baseUrl/api/groups/$groupId/documents';
-}
+  static String downloadGroupDocument(String groupId, String documentId) =>'$baseUrl/api/groups/$groupId/documents/$documentId/download';
+  static String deleteGroupDocument(String groupId, String documentId) =>'$baseUrl/api/groups/$groupId/documents/$documentId';
+} 
