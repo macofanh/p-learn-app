@@ -195,6 +195,12 @@ class GroupService {
       );
 
       return response.statusCode == 201 || response.statusCode == 200;
+    } on DioError catch (e) {
+      // ignore: avoid_print
+      print('DioError when uploading document: $e');
+      // ignore: avoid_print
+      print('Response from server: ${e.response}');
+      throw Exception('Upload tài liệu thất bại: ${e.message}');
     } catch (e) {
       throw Exception('Upload tài liệu thất bại: $e');
     }

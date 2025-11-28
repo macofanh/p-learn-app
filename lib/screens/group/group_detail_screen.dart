@@ -22,28 +22,15 @@ class GroupDetailScreen extends StatefulWidget {
   _GroupDetailScreenState createState() => _GroupDetailScreenState();
 }
 
-class _GroupDetailScreenState extends State<GroupDetailScreen>
-    with SingleTickerProviderStateMixin {
+class _GroupDetailScreenState extends State<GroupDetailScreen> {
   final GroupService _groupService = GroupService();
   late Future<List<dynamic>> _documentsFuture;
-  late TabController _tabController;
   bool _isUploading = false;
 
   @override
   void initState() {
     super.initState();
     _documentsFuture = _groupService.getGroupDocuments(widget.groupId);
-    _tabController = TabController(length: 2, vsync: this);
-
-    _tabController.addListener(() {
-      if (mounted) setState(() {});
-    });
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   void _refreshDocuments() {
@@ -196,58 +183,22 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
         title: Text(widget.groupName),
         backgroundColor: Colors.red,
         foregroundColor: Colors.white,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(text: 'Trò chuyện'),
-            Tab(text: 'Tài liệu'),
-          ],
-        ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [_buildChatView(), _buildDocumentsView()],
-      ),
+      body: _buildDocumentsView(),
       floatingActionButton: _buildFloatingActionButton(),
     );
   }
 
   Widget? _buildFloatingActionButton() {
-    if (_tabController.index == 1) {
-      return FloatingActionButton(
-        onPressed: _pickAndUploadFile,
-        backgroundColor: Colors.red,
-        child: _isUploading
-            ? const CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              )
-            : const Icon(Icons.upload_file),
-        tooltip: 'Tải lên tài liệu',
-      );
-    }
-    return null;
-  }
-
-  Widget _buildChatView() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.chat_bubble_outline,
-            size: 80,
-            color: Colors.grey.shade400,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Tính năng trò chuyện sắp ra mắt',
-            style: TextStyle(fontSize: 16, color: Colors.grey),
-          ),
-        ],
-      ),
+    return FloatingActionButton(
+      onPressed: _pickAndUploadFile,
+      backgroundColor: Colors.red,
+      child: _isUploading
+          ? const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            )
+          : const Icon(Icons.upload_file),
+      tooltip: 'Tải lên tài liệu',
     );
   }
 
