@@ -92,8 +92,10 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
   }
 
   Future<void> _downloadFile(String documentUrl) async {
-    final fullUrl = Uri.parse(Endpoints.baseUrl + documentUrl);
-    if (!await launchUrl(fullUrl, mode: LaunchMode.externalApplication)) {
+    final Uri baseUrl = Uri.parse(Endpoints.baseUrl);
+    final Uri fullUrl = baseUrl.resolve(documentUrl);
+
+    if (!await launchUrl(fullUrl)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Không thể mở tệp: $documentUrl')),
@@ -209,11 +211,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text('Loại: ${doc['fileType'] ?? 'N/A'}'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.download, color: Colors.blue),
-                    onPressed: () => _downloadFile(doc['filePath']),
-                    tooltip: 'Tải về',
-                  ),
+                  onTap: () => _downloadFile(doc['filePath']),
                 ),
               );
             },

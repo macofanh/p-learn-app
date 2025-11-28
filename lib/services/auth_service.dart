@@ -10,7 +10,6 @@ class AuthService with ChangeNotifier {
   String? _username;
   String? _email;
   bool _isLoggedIn = false;
-
   bool get isLoggedIn => _isLoggedIn;
   String? get currentUsername => _username;
   String? get currentEmail => _email;

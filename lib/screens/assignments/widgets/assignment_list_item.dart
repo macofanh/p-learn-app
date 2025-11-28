@@ -7,10 +7,12 @@ class AssignmentListItem extends StatelessWidget {
     super.key,
     required this.assignment,
     required this.onLongPress,
+    this.onStatusChanged,
   });
 
   final Assignment assignment;
   final VoidCallback onLongPress;
+  final ValueChanged<bool?>? onStatusChanged;
 
   // ---- Tính số ngày đến hạn ----
   String _getDueDateInfo(DateTime dueDate) {
@@ -105,12 +107,21 @@ class AssignmentListItem extends StatelessWidget {
           ),
 
           // Badge trạng thái thời gian
-          trailing: Text(
-            dueInfo,
-            style: TextStyle(
-              color: dueColor,
-              fontWeight: FontWeight.bold,
-            ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                dueInfo,
+                style: TextStyle(
+                  color: dueColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Checkbox(
+                value: assignment.completed,
+                onChanged: onStatusChanged,
+              ),
+            ],
           ),
         ),
       ),

@@ -2,6 +2,9 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:p_learn_app/models/schedule_model.dart';
+import 'package:p_learn_app/models/assignment_model.dart';
+import 'package:intl/intl.dart';
+
 
 class NotificationService {
   static final NotificationService _notificationService = NotificationService._internal();
@@ -63,7 +66,7 @@ class NotificationService {
           tz.TZDateTime.from(notificationTime, tz.local),
           const NotificationDetails(
             android: AndroidNotificationDetails(
-              'channel_id', 
+              'channel_id',
               'channel_name',
               channelDescription: 'channel_description',
               importance: Importance.max,
@@ -78,41 +81,169 @@ class NotificationService {
     }
   }
 
+  // Schedules the initial 1-minute notification
+  Future<void> scheduleInitialAssignmentNotification(Assignment assignment) async {
+    if (assignment.completed || assignment.dueDate.isBefore(DateTime.now())) {
+      return;
+    }
+
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      assignment.id + 1000000, // Use a unique ID for the initial notification
+      'Bài tập mới',
+      'Bạn có bài tập "${assignment.title}" vừa được tạo.',
+      tz.TZDateTime.now(tz.local).add(const Duration(minutes: 1)),
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'assignment_channel_id',
+          'assignment_channel_name',
+          channelDescription: 'Channel for assignment notifications',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    );
+  }
+
+  // Shows a reminder notification, to be called from the background task
+  Future<void> showAssignmentReminderNotification(Assignment assignment) async {
+    await flutterLocalNotificationsPlugin.show(
+      assignment.id, // Use the base assignment ID
+      'Đừng quên bài tập',
+      'Bài tập "${assignment.title}" sắp hết hạn vào ngày ${DateFormat('dd/MM/yyyy').format(assignment.dueDate)}.',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'assignment_channel_id',
+          'assignment_channel_name',
+          channelDescription: 'Channel for assignment notifications',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+    );
+  }
+
+
+  Future<void> cancelInitialAssignmentNotification(Assignment assignment) async {
+    await flutterLocalNotificationsPlugin.cancel(assignment.id + 1000000);
+  }
+
   Future<void> scheduleAllNotifications(List<ScheduleItem> schedule) async {
     for (var item in schedule) {
       await scheduleNotification(item);
     }
   }
 
-  Future<void> showNowTestNotification() async {
-   
-    try {
-      const NotificationDetails platformDetails = NotificationDetails(
-        android: AndroidNotificationDetails(
-          'channel_id', 
-          'channel_name', 
-          channelDescription: 'channel_description',
-          importance: Importance.max,
-          priority: Priority.high,
-          ticker: 'ticker',
-        ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      );
+    Future<void> showDebugNotification({required String title, required String body}) async {
 
-      await flutterLocalNotificationsPlugin.show(
-        999,
-        'Thông báo Test 🚨', 
-        'Nếu bạn thấy thông báo này, nghĩa là nó hoạt động!', 
-        platformDetails,
-        payload: 'test_payload',
-      );
-     
-    } catch (e) {
-      //
+      try {
+
+        const NotificationDetails platformDetails = NotificationDetails(
+
+          android: AndroidNotificationDetails(
+
+            'debug_channel',
+
+            'Debug Channel',
+
+            channelDescription: 'For debugging notifications',
+
+            importance: Importance.max,
+
+            priority: Priority.high,
+
+          ),
+
+          iOS: DarwinNotificationDetails(),
+
+        );
+
+  
+
+        await flutterLocalNotificationsPlugin.show(
+
+          998, // Unique ID for debug notifications
+
+          title,
+
+          body,
+
+          platformDetails,
+
+        );
+
+      } catch (e) {
+
+        //
+
+      }
+
     }
+
+  
+
+    Future<void> showNowTestNotification() async {
+
+  
+
+      try {
+
+        const NotificationDetails platformDetails = NotificationDetails(
+
+          android: AndroidNotificationDetails(
+
+            'channel_id',
+
+            'channel_name',
+
+            channelDescription: 'channel_description',
+
+            importance: Importance.max,
+
+            priority: Priority.high,
+
+            ticker: 'ticker',
+
+          ),
+
+          iOS: DarwinNotificationDetails(
+
+            presentAlert: true,
+
+            presentBadge: true,
+
+            presentSound: true,
+
+          ),
+
+        );
+
+  
+
+        await flutterLocalNotificationsPlugin.show(
+
+          999,
+
+          'Thông báo Test 🚨', 
+
+          'Nếu bạn thấy thông báo này, nghĩa là nó hoạt động!', 
+
+          platformDetails,
+
+          payload: 'test_payload',
+
+        );
+
+      } catch (e) {
+
+        //
+
+      }
+
+    }
+
   }
-}
+
+  

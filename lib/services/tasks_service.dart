@@ -19,8 +19,7 @@ class TaskService {
     };
   }
 
-
-  Future<List<Assignment>> getAllTasks(String subjectId) async {
+  Future<List<Assignment>> getAllAssignments(String subjectId) async {
     final url = Uri.parse(Endpoints.getAllTasks(subjectId));
     final headers = await _getAuthHeaders();
 
@@ -41,7 +40,7 @@ class TaskService {
     }
   }
 
-  Future<bool> createTask({
+  Future<Assignment> createAssignment({
     required String subjectId,
     required String title,
     required String description,
@@ -63,7 +62,8 @@ class TaskService {
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 201) {
-        return true;
+        final json = jsonDecode(utf8.decode(response.bodyBytes));
+        return Assignment.fromJson(json);
       } else {
         String message = "Lỗi tạo bài tập: ${response.statusCode}";
 
@@ -81,7 +81,7 @@ class TaskService {
     }
   }
 
-  Future<bool> updateTask({
+  Future<bool> updateAssignment({
     required String taskId,
     String? title,
     String? description,
@@ -113,8 +113,7 @@ class TaskService {
     }
   }
 
-
-  Future<bool> deleteTask(String taskId) async {
+  Future<bool> deleteAssignment(String taskId) async {
     final url = Uri.parse(Endpoints.deleteTask(taskId));
     final headers = await _getAuthHeaders();
 

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:p_learn_app/models/assignment_model.dart';
 import 'package:p_learn_app/models/course_model.dart';
+import 'package:p_learn_app/services/notification_service.dart';
 import 'package:p_learn_app/services/tasks_service.dart';
+import 'package:workmanager/workmanager.dart';
+import 'package:p_learn_app/services/background_service.dart';
 
 import 'widgets/add_assignment_dialog.dart';
 import 'widgets/assignment_empty_view.dart';
@@ -21,6 +24,7 @@ class AssignmentListScreen extends StatefulWidget {
 class _AssignmentListScreenState extends State<AssignmentListScreen> {
   late Future<List<Assignment>> _assignmentsFuture;
   final TaskService _taskService = TaskService();
+  final NotificationService _notificationService = NotificationService();
 
   @override
   void initState() {
@@ -29,7 +33,24 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
   }
 
   Future<List<Assignment>> _loadAssignments() {
-    return _taskService.getAllTasks(widget.course.id.toString());
+    return _taskService.getAllAssignments(widget.course.id.toString());
+  }
+
+  void _triggerManualCheck() {
+    Workmanager().registerOneOffTask(
+      "manualAssignmentCheck-${DateTime.now().millisecondsSinceEpoch}",
+      assignmentCheckTask,
+      inputData: <String, dynamic>{
+        'isManual': true,
+      },
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Đang chạy kiểm tra bài tập trong nền...'),
+        duration: Duration(seconds: 3),
+      ),
+    );
   }
 
   Future<void> _addAssignment(
@@ -37,26 +58,38 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
     String description,
     DateTime deadline,
   ) async {
-    final success = await _taskService.createTask(
-      subjectId: widget.course.id.toString(),
-      title: title,
-      description: description,
-      deadline: deadline,
-    );
+    try {
+      final newAssignment = await _taskService.createAssignment(
+        subjectId: widget.course.id.toString(),
+        title: title,
+        description: description,
+        deadline: deadline,
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (success) {
-      // ⭐ Update future trước
-      _assignmentsFuture = _loadAssignments();
+      // Add to local list and schedule notification
+      _assignmentsFuture = _assignmentsFuture.then((assignments) {
+        assignments.add(newAssignment);
+        return assignments;
+      });
 
-      // ⭐ Gọi setState rỗng để rebuild
+      _notificationService.scheduleInitialAssignmentNotification(newAssignment);
+
       setState(() {});
 
-      Navigator.pop(context);
+      Navigator.pop(context); // Close the dialog
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Đã thêm bài tập thành công')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi: Không thể thêm bài tập.'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -67,11 +100,12 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
     String newDesc,
     DateTime newDeadline,
   ) async {
-    final ok = await _taskService.updateTask(
+    final ok = await _taskService.updateAssignment(
       taskId: assignment.id.toString(),
       title: newTitle,
       description: newDesc,
       deadline: newDeadline,
+      completed: assignment.completed, // Giữ nguyên trạng thái hoàn thành
     );
 
     if (!mounted) return;
@@ -88,12 +122,78 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
     }
   }
 
+  Future<void> _updateAssignmentStatus(Assignment assignment, bool newStatus) async {
+    // 1. Optimistic UI update
+    setState(() {
+      _assignmentsFuture = _assignmentsFuture.then((assignments) {
+        final index = assignments.indexWhere((a) => a.id == assignment.id);
+        if (index != -1) {
+          assignments[index] = Assignment(
+            id: assignment.id,
+            title: assignment.title,
+            description: assignment.description,
+            dueDate: assignment.dueDate,
+            completed: newStatus,
+            subjectId: assignment.subjectId,
+          );
+        }
+        return assignments;
+      });
+    });
+
+    try {
+      // 2. Send request to server
+      final ok = await _taskService.updateAssignment(
+        taskId: assignment.id.toString(),
+        title: assignment.title,
+        description: assignment.description,
+        deadline: assignment.dueDate,
+        completed: newStatus,
+      );
+
+      if (!mounted) return;
+
+      if (ok) {
+        // 3. Handle notifications and show success message
+        if (newStatus) {
+          _notificationService.cancelInitialAssignmentNotification(assignment);
+        } else {
+          _notificationService.scheduleInitialAssignmentNotification(assignment);
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              newStatus ? 'Đã hoàn thành bài tập' : 'Đã bỏ hoàn thành bài tập',
+            ),
+          ),
+        );
+      } else {
+        // 4. Revert on failure
+        throw Exception("Failed to update status on server");
+      }
+    } catch (e) {
+      if (!mounted) return;
+      // 4. Revert on failure and show error
+      setState(() {
+         _assignmentsFuture = _loadAssignments(); // Reload from server to be safe
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi: ${e.toString().replaceFirst("Exception: ", "")}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+
   Future<void> _deleteAssignment(Assignment assignment) async {
-    final ok = await _taskService.deleteTask(assignment.id.toString());
+    final ok = await _taskService.deleteAssignment(assignment.id.toString());
 
     if (!mounted) return;
 
     if (ok) {
+      _notificationService.cancelInitialAssignmentNotification(assignment);
       _assignmentsFuture = _loadAssignments();
       setState(() {});
 
@@ -195,6 +295,13 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
           ),
         ),
         backgroundColor: Colors.red,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _triggerManualCheck,
+            tooltip: 'Kiểm tra bài tập',
+          ),
+        ],
       ),
       body: FutureBuilder<List<Assignment>>(
         future: _assignmentsFuture,
@@ -205,10 +312,10 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
             );
           }
 
-          if (snapshot.hasError) {
+          if (snapshot.hasError && snapshot.connectionState != ConnectionState.waiting) {
             return AssignmentErrorView(error: snapshot.error.toString());
           }
-
+          
           final assignments = snapshot.data ?? [];
 
           if (assignments.isEmpty) {
@@ -218,10 +325,18 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: assignments.length,
-            itemBuilder: (context, index) => AssignmentListItem(
-              assignment: assignments[index],
-              onLongPress: () => _showAssignmentOptions(assignments[index]),
-            ),
+            itemBuilder: (context, index) {
+              final assignment = assignments[index];
+              return AssignmentListItem(
+                assignment: assignment,
+                onLongPress: () => _showAssignmentOptions(assignment),
+                onStatusChanged: (completed) {
+                  if (completed != null) {
+                    _updateAssignmentStatus(assignment, completed);
+                  }
+                },
+              );
+            },
           );
         },
       ),

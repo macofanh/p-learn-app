@@ -3,9 +3,10 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:p_learn_app/screens/auth/auth_wrapper.dart';
 import 'package:p_learn_app/services/auth_service.dart';
 import 'package:provider/provider.dart';
+import 'package:workmanager/workmanager.dart';
 
 import 'package:p_learn_app/services/notification_service.dart';
-
+import 'package:p_learn_app/services/background_service.dart';
 import 'package:p_learn_app/providers/course_provider.dart';
 
 void main() async {
@@ -13,6 +14,17 @@ void main() async {
   await dotenv.load(fileName: ".env");
   await NotificationService().init();
   await NotificationService().requestPermissions();
+
+  Workmanager().initialize(
+    callbackDispatcher,
+    isInDebugMode: true, 
+  );
+
+  Workmanager().registerPeriodicTask(
+    "1",
+    assignmentCheckTask,
+    frequency: const Duration(hours: 4),
+  );
   runApp(const MainApp());
 }
 
