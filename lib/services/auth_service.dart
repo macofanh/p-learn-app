@@ -15,44 +15,41 @@ class AuthService with ChangeNotifier {
   String? get currentEmail => _email;
 
   Future<Map<String, dynamic>> login(String username, String password) async {
-  try {
-    final url = Uri.parse(Endpoints.login);
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json; charset=UTF-8'},
-      body: jsonEncode({'username': username, 'password': password}),
-    );
+    try {
+      final url = Uri.parse(Endpoints.login);
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+        body: jsonEncode({'username': username, 'password': password}),
+      );
 
-    print("RAW RESPONSE: ${response.body}");
+      print("RAW RESPONSE: ${response.body}");
 
-    if (response.statusCode == 200) {
-      final responseData = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
 
-      final String accessToken = responseData['accessToken'];
-      final String serverUsername = responseData['user']['username'];
-      final String serverEmail = responseData['user']['email'];
+        final String accessToken = responseData['accessToken'];
+        final String serverUsername = responseData['user']['username'];
+        final String serverEmail = responseData['user']['email'];
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('access_token', accessToken);
-      await prefs.setString('username', serverUsername);
-      await prefs.setString('email', serverEmail);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('access_token', accessToken);
+        await prefs.setString('username', serverUsername);
+        await prefs.setString('email', serverEmail);
 
-      _isLoggedIn = true;
-      _username = serverUsername;
-      _email = serverEmail;
+        _isLoggedIn = true;
+        _username = serverUsername;
+        _email = serverEmail;
 
-      notifyListeners();
-      return {'success': true, 'message': 'Đăng nhập thành công'};
-    } else {
-      return {
-        'success': false,
-        'message': 'Sai tài khoản hoặc mật khẩu'
-      };
+        notifyListeners();
+        return {'success': true, 'message': 'Đăng nhập thành công'};
+      } else {
+        return {'success': false, 'message': 'Sai tài khoản hoặc mật khẩu'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Lỗi kết nối: ${e.toString()}'};
     }
-  } catch (e) {
-    return {'success': false, 'message': 'Lỗi kết nối: ${e.toString()}'};
   }
-}
 
   Future<bool> register(String username, String email, String password) async {
     try {
@@ -87,25 +84,31 @@ class AuthService with ChangeNotifier {
           'Content-Type': 'application/json; charset=UTF-8',
           'Accept': 'application/json',
         },
-
-        body: jsonEncode({'email': email, 'new_password': newPassword}),
+        body: jsonEncode({'email': email, 'newPassword': newPassword}),
       );
 
-      final responseBody = jsonDecode(utf8.decode(response.bodyBytes));
+      final raw = utf8.decode(response.bodyBytes);
+      dynamic responseBody;
+
+      // cố parse JSON, nếu fail → giữ nguyên text
+      try {
+        responseBody = jsonDecode(raw);
+      } catch (e) {
+        responseBody = raw;
+      }
 
       if (response.statusCode == 200) {
         return responseBody.toString();
       } else if (response.statusCode == 422) {
-        String errorMessage = 'Dữ liệu không hợp lệ';
         if (responseBody is Map && responseBody.containsKey('detail')) {
-          errorMessage = responseBody['detail'];
+          throw Exception(responseBody['detail']);
         }
-        throw Exception(errorMessage);
+        throw Exception("Dữ liệu không hợp lệ");
       } else {
-        throw Exception('Lỗi máy chủ: ${response.statusCode}');
+        throw Exception("Lỗi máy chủ: ${response.statusCode}");
       }
     } catch (e) {
-      throw Exception('Không thể kết nối. ${e.toString()}');
+      throw Exception("Không thể kết nối. ${e.toString()}");
     }
   }
 

@@ -6,7 +6,7 @@ class Endpoints {
   //Auth
   static String get login => '$baseUrl/api/auth/login';
   static String get register => '$baseUrl/api/auth/register';
-  static String get resetPassword => '$baseUrl/api/auth/reset-password';
+  static String get resetPassword => '$baseUrl/api/auth/simple-reset-password';
 
   //Subjects
   static String get createSubject => '$baseUrl/api/subjects/create';

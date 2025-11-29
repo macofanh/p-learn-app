@@ -172,38 +172,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       );
                     },
                   ),
-                  const Divider(height: 1, indent: 72),
-                  ProfileActionTile(
-                    icon: Icons.help_outline,
-                    title: 'Trợ giúp',
-                    onTap: () {},
-                  ),
-                  const Divider(height: 1, indent: 72),
-                  ProfileActionTile(
-                    icon: Icons.notifications_active_outlined,
-                    title: 'Kiểm tra thông báo',
-                    onTap: () async {
-                      final notificationService = NotificationService();
-                      await notificationService.requestPermissions();
-                      await notificationService.flutterLocalNotificationsPlugin
-                          .show(
-                        0,
-                        'Thông báo kiểm tra',
-                        'Đây là một thông báo thử nghiệm từ P-Learn.',
-                        const NotificationDetails(
-                          android: AndroidNotificationDetails(
-                            'test_channel_id',
-                            'Test Channel',
-                            channelDescription:
-                                'Channel for test notifications',
-                            importance: Importance.max,
-                            priority: Priority.high,
-                          ),
-                          iOS: DarwinNotificationDetails(),
-                        ),
-                      );
-                    },
-                  ),
+                  // const Divider(height: 1, indent: 72),
+                  // ProfileActionTile(
+                  //   icon: Icons.help_outline,
+                  //   title: 'Trợ giúp',
+                  //   onTap: () {},
+                  // ),
+                  // const Divider(height: 1, indent: 72),
+                  // ProfileActionTile(
+                  //   icon: Icons.notifications_active_outlined,
+                  //   title: 'Kiểm tra thông báo',
+                  //   onTap: () async {
+                  //     final notificationService = NotificationService();
+                  //     await notificationService.requestPermissions();
+                  //     await notificationService.flutterLocalNotificationsPlugin
+                  //         .show(
+                  //       0,
+                  //       'Thông báo kiểm tra',
+                  //       'Đây là một thông báo thử nghiệm từ P-Learn.',
+                  //       const NotificationDetails(
+                  //         android: AndroidNotificationDetails(
+                  //           'test_channel_id',
+                  //           'Test Channel',
+                  //           channelDescription:
+                  //               'Channel for test notifications',
+                  //           importance: Importance.max,
+                  //           priority: Priority.high,
+                  //         ),
+                  //         iOS: DarwinNotificationDetails(),
+                  //       ),
+                  //     );
+                  //   },
+                  // ),
                 ],
               ),
             ),
